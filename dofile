@@ -1,0 +1,288 @@
+## El presente trabajo tiene como finalidad realizar un análisis empírico del mercado laboral argentino entre 1996 y 2023, con el fin de estimar una curva salarial y analizar si existe una relación de largo plazo (relación dinámica) entre los salarios y la tasa de desempleo regional, o si, por el contrario, hay una relación estática entre la inflación salarial y la tasa de desempleo regional (curva de Phillips). Para esto, se utilizará una metodología de pseudo-paneles en base en los microdatos de la Encuesta Permanente de Hogares durante el periodo analizado. 
+
+* Maestría en Economía - Universidad de Buenos Aires
+* Curso: Econometría II
+* Docente: Luis A. Trajtenberg
+
+clear all
+*set mem 150m
+global input "C:\Users\User\OneDrive - Económicas - UBA\Maestría\UBA\2do trimestre (jun-sep 24)\Econometría II\Examen\Pseudo-paneles Datasets\Datasets"
+global output "C:\Users\User\OneDrive - Económicas - UBA\Maestría\UBA\2do trimestre (jun-sep 24)\Econometría II\Examen\Pseudo-paneles Datasets\Datasets\Bases_finales"
+global excel "C:\Users\User\OneDrive - Económicas - UBA\Maestría\UBA\2do trimestre (jun-sep 24)\Econometría II\Examen\Pseudo-paneles Datasets\Datasets\Excel_16-23"
+
+* Años 1996-2002
+quietly forvalues i=1996/2002{
+use "$input\\Individual_M`i'.dta", clear
+keep estado agloreal h12 h13 ano4 p56 p58 pondera p21 p15p region
+quietly append using "$input\\Individual_O`i'.dta", keep(estado agloreal h12 h13 ano4 p56 p58 pondera p21 p15p region)
+quietly gen nivel_ed=0
+quietly replace nivel_ed=1 if p56=="1" & p58==2
+quietly replace nivel_ed=2 if p56=="1" & p58==1
+quietly replace nivel_ed=3 if (p56=="2" | p56=="3" | p56=="4" | p56=="5" | p56=="6") & p58==2
+quietly replace nivel_ed=4 if (p56=="2" | p56=="3" | p56=="4" | p56=="5" | p56=="6") & p58==1
+quietly replace nivel_ed=5 if (p56=="7" | p56=="8") & p58==2
+quietly replace nivel_ed=6 if (p56=="7" | p56=="8") & p58==1
+rename h12 ch06
+rename h13 ch04
+rename agloreal aglomerado
+rename p15p pp3e_tot
+keep estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region
+save "$output\\Base `i'.dta", replace
+}
+
+* Año 2003
+clear all
+use "$input\\Individual_t303.dta", clear
+keep estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region
+quietly append using "$input\\Individual_t403.dta", keep(estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region)
+quietly save "$output\\Base 2003.dta", replace
+
+* Año 2012
+clear all
+use "$input\\Individual_t112.dta", clear
+quietly append using "$input\\Individual_t212.dta", keep(estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region)
+quietly save "$output\\Base 2012.dta", replace
+
+* Año 2004 - Año 2009
+clear all
+quietly forvalues j=4/9{
+use "$input\\Individual_t10`j'.dta", clear
+keep estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region
+quietly forvalues i=20`j'(100)40`j'{
+append using "$input\\Individual_t`i'.dta", keep(estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region)
+}
+save "$output\\Base 200`j'.dta", replace
+}
+
+* Año 2010 - Año 2014
+clear all
+quietly forvalues j=10/14{
+use "$input\\Individual_t1`j'.dta", clear
+keep estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region
+quietly forvalues i=2`j'(100)4`j'{
+append using "$input\\Individual_t`i'.dta", keep(estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region)
+}
+save "$output\\Base 20`j'.dta", replace
+}
+
+* Año 2015
+clear all
+use "$input\\Individual_t115.dta", clear
+quietly append using "$input\\Individual_t215.dta", keep(estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region)
+quietly save "$output\\Base 2015.dta", replace
+
+* Año 2016 
+//Primero pasamos a formato .dta
+clear all
+forvalues i = 2/4 {
+    import excel "$excel\\usu_individual_t`i'16", firstrow clear
+	rename *, lower
+    save "$input\\Individual_t`i'16.dta", replace 
+}
+
+//Ahora si unimos las bases
+clear all
+use "$input\\Individual_t216.dta", clear
+keep estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region
+quietly forvalues i=3/4{
+append using "$input\\Individual_t`i'16.dta", keep(estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region)
+save "$output\\Base 2016.dta", replace
+}
+
+* Año 2017-2023
+//Primero pasamos a formato .dta
+clear all
+forvalues i = 17/23 {
+    forvalues j = 1/4 {
+        import excel "$excel\\usu_individual_t`j'`i'", firstrow clear
+        rename *, lower //minuscula
+		destring pp3e_tot, replace
+        save "$input\\Individual_t`j'`i'.dta", replace  
+    }
+}
+
+// Eliminando las celdas que contienen "NA" (solo hacerlo en la base trimestre 1 del 2021)
+/*replace pp3e_tot = "" if pp3e_tot == "NA" 
+destring pp3e_tot, replace
+desc pp3e_tot 
+save "$input\\Individual_t121.dta", replace*/
+
+
+ //Ahora si unimos las bases 
+clear all
+quietly forvalues j=17/23{
+use "$input\\Individual_t1`j'.dta", clear
+keep estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region
+quietly forvalues i=2`j'(100)4`j'{
+append using "$input\\Individual_t`i'.dta", keep(estado aglomerado ch04 ch06 ano4 nivel_ed pondera p21 pp3e_tot region)
+}
+save "$output\\Base 20`j'.dta", replace
+}
+
+* Curva Salarial Dinámicaca & Curva de Phillips - Cohort Data Pseudo Panel 1996-2012
+* Población Económicamente Activa (18-65 Años)
+* 10 Cohortes de Nacimiento; Time Span = 5 Años
+
+clear matrix
+clear
+quietly set mem 140m
+quietly forvalues i=1/28{ 
+local h`i'=1995+`i'
+use "$output\\Base `h`i''.dta", clear
+keep if (estado==1 | estado==2) & ch06>=18 & ch06<=65
+quietly gen desocup=estado==2
+quietly gen id=aglomerado
+quietly gen weight=pondera
+quietly gen age=ch06
+quietly gen f=ch04==2
+quietly gen year=ano4
+quietly gen ed=0
+quietly replace ed=3 if nivel_ed==1
+quietly replace ed=7 if nivel_ed==2
+quietly replace ed=9.5 if nivel_ed==3
+quietly replace ed=12 if nivel_ed==4
+quietly replace ed=14.5 if nivel_ed==5
+quietly replace ed=17 if nivel_ed==6
+sort id
+by id: egen p=sum(weight)
+gen a=desocup*weight/p
+gen b=f*weight/p
+gen c=ed*weight/p
+by id: egen u=sum(a)
+by id: egen fem=sum(b)
+by id: egen educ=sum(c)
+quietly replace u=u*100
+keep if p21>0
+quietly gen y=p21*12/52/pp3e_tot if pp3e_tot<=60
+gen cohort=0
+replace cohort=1 if age>=-3+`i' & age<=1+`i'
+replace cohort=2 if age>=2+`i' & age<=6+`i'
+replace cohort=3 if age>=7+`i' & age<=11+`i'
+replace cohort=4 if age>=12+`i' & age<=16+`i'
+replace cohort=5 if age>=17+`i' & age<=21+`i'
+replace cohort=6 if age>=22+`i' & age<=26+`i'
+replace cohort=7 if age>=27+`i' & age<=31+`i'
+replace cohort=8 if age>=32+`i' & age<=36+`i'
+replace cohort=9 if age>=37+`i' & age<=41+`i'
+replace cohort=10 if age>=42+`i' & age<=46+`i'
+replace cohort=11 if age>=47+`i' & age<=51+`i'
+replace cohort=12 if age>=52+`i' & age<=56+`i' //Con esta modificación del rango de los cohortes, me da los rangos del excel
+drop if cohort==0
+sort id cohort
+by id cohort: egen n=sum(weight) if y!=.
+gen z=y*weight/n
+by id cohort: egen w=sum(z)
+drop a b c f ed p desocup z
+keep id-w region
+quietly save "$output\\t`h`i''.dta", replace
+}
+
+quietly forvalues i=28(-1)1{
+local h`i'=1995+`i'
+append using "$output\\t`h`i''.dta"
+}
+
+save "$output\\Base_Oficial.dta", replace
+
+*Para corroborar si todas las observaciones están, abrir cualquier base del tipo "t`h`i''.dta" y aplicar count if year=="año de la base"
+
+* Corrección cohortes
+quietly drop if cohort==1 & year<=2015
+quietly drop if cohort==2 & year<=2010
+quietly drop if cohort==3 & year<=2005
+quietly drop if cohort==4 & year<=2000
+quietly drop if cohort==9 & year>=2020
+quietly drop if cohort==10 & year>=2015
+quietly drop if cohort==11 & year>=2010
+quietly drop if cohort==12 & year>=2005
+collapse (mean) region age fem w u educ weight=n (count) n=age, by(year id cohort)
+quietly replace age=round(age)
+local k0="NOA"
+local k1="NEA"
+local k2="Cuyo"
+local k3="Pampeana"
+local k4="Patagonia"
+
+
+quietly forvalues i=0/4{
+gen reg`i'=region==4`i'
+label var reg`i' "`k`i''"
+}
+gen lw=log(w)
+gen lu=log(u)
+egen g=group(id cohort)
+order g year
+tsset g year
+quietly gen lw1=L.lw
+quietly gen dw=D.lw
+label var lw "LOG(W)"
+label var lw1 "LOG(W) t-1"
+label var dw "DLOG(W)"
+label var lu "LOG(U)"
+label var g "Unidad Individual"
+quietly forvalues i=1/12{
+gen c`i'=cohort==`i'
+label var c`i' "Cohort `i'"
+}
+quietly forvalues i=1996/2023{
+gen year`i'=year==`i'
+label var year`i' "Año'"
+}
+label var n "Tamaño cohorte"
+label var weight "Factor de Expansión"
+label var cohort "Birth Cohort (5-Year Span)"
+label define e   1 "[1994-1998]" 2 "[1989-1993]" 3 "[1984-1988]" 4 "[1979-1983]" 5 "[1974-1978]" 6 "[1969-1973]" 7 "[1964-1968]" 8 "[1959-1963]" 9 "[1954-1958]" 10 "[1949-1953]" 11 "[1944-1948]" 12 "[1939-1943]"
+
+label define g 2 "Gran La Plata" 3 "Bahía Blanca - Cerri" 4 "Gran Rosario" 5 "Gran Santa Fe" 6 "Gran Paraná" 7 "Posadas" 8 "Gran Resistencia" 9 "Comodoro Rivadavia - Rada Tilly" 10 "Gran Mendoza" 12 "Corrientes" 13 "Gran Cordoba" 14 "Concordia" 15 "Formosa" 17 "Neuquen- Plottier" 18 "Santiago del Estero - La Banda" 19 "Jujuy - Palpalá" 20 "Rio Gallegos" 22 "Gran Catamarca" 23 "Gran Salta" 25 "La Rioja" 26 "Gran San Luis - El Chorrillo" 27 "Gran San Juan" 29 "Gran Tucuman - Tafi Viejo" 30 "Santa Rosa - Toay" 31 "Ushuaia - Rio Grande" 32 "Ciudad Autónoma de Buenos Aires" 33 "Partido del GBA" 34 "Mar del Plata" 36 "Rio Cuarto" 38 "San Nicolas- Villa Constitucion" 91 "Rawson - Trelew" 93 "Viedma - Carmen de Patagones"
+
+label define r 1 "Gran Buenos Aires" 40 "NOA" 41 "NEA" 42 "Cuyo" 43 "Pampeana" 44 "Patagonia", replace
+label values region r
+label values id g
+label values cohort e
+label var fem "=1 Mujer"
+label var age "Edad"
+label var year "Año"
+label var region "Region"
+label var id "Aglomerado"
+label var u "Tasa de Desempleo %"
+label var educ "Años de Escolaridad"
+label var w "Salario Horario"
+
+quietly forvalues i=1996/2023{
+lab var year`i' "Año`i'"
+}
+
+save "$output\\Base_Oficial_Oficial.dta", replace
+
+/*PENDIENTE*/
+
+
+* Curva Salarial Estática - Cohort Data Pseudo Panel 1996-2023
+
+*MCO
+regress lw lu fem educ year1998-year2023 reg1-reg4 c2-c12 if n>=100 
+estimates store POLS_CSE
+*FE
+xtreg lw lu fem educ year1998-year2023 reg1-reg4 c2-c12 if n>=100, fe 
+estimates store FE_CSE
+
+* Curva Salarial Dinámica - Cohort Data Pseudo Panel 1996-2023
+
+*MCO
+regress lw lw1 lu fem educ year1998-year2023 reg1-reg4 c2-c12 if n>=100
+estimates store POLS_CSD
+*FE
+xtreg lw lw1 lu fem educ year1998-year2023 reg1-reg4 c2-c12 if n>=100, fe
+estimates store FE_CSD
+
+* Curva de Phillips - Cohort Data Pseudo Panel 1996-2023
+
+*MCO
+regress dw lu fem educ year1998-year2023 reg1-reg4 c2-c12 if n>=100
+estimates store POLS_CP
+*FE
+xtreg dw lu fem educ year1998-year2023 reg1-reg4 c2-c12 if n>=100, fe
+estimates store FE_CP
+
+
+estimates table POLS_CSE POLS_CSD POLS_CP FE_CSE FE_CSD FE_CP, star stats(N r2 r2_o) b(%9.4f) varlabel title(Ecuación Salarial Estática, Dinámica y Curva de Phillips vía MCO y Efectos Fijos)
