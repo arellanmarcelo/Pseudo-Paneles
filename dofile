@@ -1,4 +1,7 @@
-## El presente trabajo tiene como finalidad realizar un análisis empírico del mercado laboral argentino entre 1996 y 2023, con el fin de estimar una curva salarial y analizar si existe una relación de largo plazo (relación dinámica) entre los salarios y la tasa de desempleo regional, o si, por el contrario, hay una relación estática entre la inflación salarial y la tasa de desempleo regional (curva de Phillips). Para esto, se utilizará una metodología de pseudo-paneles en base en los microdatos de la Encuesta Permanente de Hogares durante el periodo analizado. 
+## El presente trabajo tiene como finalidad realizar un análisis empírico del mercado laboral argentino entre 1996 y 2023, 
+con el fin de estimar una curva salarial y analizar si existe una relación de largo plazo (relación dinámica) entre los salarios y la tasa de desempleo regional, 
+o si, por el contrario, hay una relación estática entre la inflación salarial y la tasa de desempleo regional (curva de Phillips). 
+Para esto, se utilizará una metodología de pseudo-paneles en base en los microdatos de la Encuesta Permanente de Hogares durante el periodo analizado. ## 
 
 * Maestría en Economía - Universidad de Buenos Aires
 * Curso: Econometría II
@@ -253,9 +256,6 @@ lab var year`i' "Año`i'"
 }
 
 save "$output\\Base_Oficial_Oficial.dta", replace
-
-/*PENDIENTE*/
-
 
 * Curva Salarial Estática - Cohort Data Pseudo Panel 1996-2023
 
